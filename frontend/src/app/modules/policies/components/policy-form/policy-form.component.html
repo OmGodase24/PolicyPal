@@ -1,0 +1,236 @@
+<div class="policy-form-container">
+  <div class="form-wrapper">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">{{ isEditMode ? ('policies.policyForm.editTitle' | translate) : ('policies.policyForm.createTitle' | translate) }}</h1>
+      <p class="form-subtitle">
+        {{ isEditMode ? ('policies.policyForm.editSubtitle' | translate) : ('policies.policyForm.createSubtitle' | translate) }}
+      </p>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" class="policy-form">
+      <!-- Expired Policy Warning -->
+      <div *ngIf="isEditMode && isExpired" class="expired-policy-warning">
+        <div class="warning-content">
+          <div class="warning-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+          </div>
+          <div class="warning-text">
+            <h4 class="warning-title">{{ 'policies.policyForm.expiredTitle' | translate }}</h4>
+            <p class="warning-message">
+              {{ 'policies.policyForm.expiredMessage' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <!-- Title Field -->
+        <div class="form-group">
+          <label for="title" class="form-label">{{ 'policies.policyForm.policyTitle' | translate }} *</label>
+          <input
+            type="text"
+            id="title"
+            formControlName="title"
+            class="form-input"
+            [class.error]="isFieldInvalid('title')"
+            [placeholder]="'policies.policyForm.titlePlaceholder' | translate"
+          />
+          <div *ngIf="isFieldInvalid('title')" class="error-message">
+            {{ getFieldError('title') }}
+          </div>
+        </div>
+
+
+        <!-- Status Field -->
+        <div class="form-group">
+          <label for="status" class="form-label">{{ 'policies.policyForm.policyStatus' | translate }} *</label>
+          <select
+            id="status"
+            formControlName="status"
+            class="form-select"
+            [class.error]="isFieldInvalid('status')"
+            (change)="onStatusChange($event)"
+          >
+            <option *ngFor="let status of policyStatuses" [value]="status.value">
+              {{ status.label | translate }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('status')" class="error-message">
+            {{ getFieldError('status') }}
+          </div>
+          
+          <!-- Publish Warning -->
+          <div *ngIf="showPublishWarning" class="publish-warning">
+            <div class="warning-icon">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+            <div class="warning-content">
+              <h4 class="warning-title">{{ 'policies.policyForm.publishWarningTitle' | translate }}</h4>
+              <p class="warning-text">
+                {{ 'policies.policyForm.publishWarningText' | translate }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expiry Date Field -->
+        <div class="form-group">
+          <label for="expiryDate" class="form-label">
+            {{ 'policies.policyForm.expiryDate' | translate }} 
+            <span *ngIf="!isEditMode">({{ 'policies.policyForm.optional' | translate }})</span>
+            <span *ngIf="isEditMode && !canEditExpiryDate" class="text-red-600 text-sm">({{ 'policies.policyForm.cannotEdit' | translate }})</span>
+          </label>
+          <input
+            type="date"
+            id="expiryDate"
+            formControlName="expiryDate"
+            class="form-input"
+            [class.error]="isFieldInvalid('expiryDate')"
+            placeholder="Select expiry date"
+          />
+          <div *ngIf="isFieldInvalid('expiryDate')" class="error-message">
+            {{ getFieldError('expiryDate') }}
+          </div>
+          <p class="field-help-text" *ngIf="!isEditMode">
+            {{ 'policies.policyForm.expiryDateHelpText' | translate }}
+          </p>
+          <p class="field-help-text" *ngIf="isEditMode && canEditExpiryDate">
+            {{ 'policies.policyForm.expiryDateEditHelpText' | translate }}
+          </p>
+          <p class="field-help-text text-red-600" *ngIf="isEditMode && !canEditExpiryDate">
+            {{ 'policies.policyForm.expiryDateLockedHelpText' | translate }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Description Field -->
+      <div class="form-group">
+        <label for="description" class="form-label">{{ 'policies.policyForm.policyDescription' | translate }} ({{ 'policies.policyForm.optional' | translate }})</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-textarea"
+          [class.error]="isFieldInvalid('description')"
+          [placeholder]="'policies.policyForm.descriptionPlaceholder' | translate"
+          rows="3"
+        ></textarea>
+        <div *ngIf="isFieldInvalid('description')" class="error-message">
+          {{ getFieldError('description') }}
+        </div>
+      </div>
+
+      <!-- Content Field -->
+      <div class="form-group">
+        <label for="content" class="form-label">{{ 'policies.policyForm.policyContent' | translate }} ({{ 'policies.policyForm.optional' | translate }})</label>
+        <textarea
+          id="content"
+          formControlName="content"
+          class="form-textarea content-textarea"
+          [class.error]="isFieldInvalid('content')"
+          [placeholder]="'policies.policyForm.contentPlaceholder' | translate"
+          rows="8"
+        ></textarea>
+        <div *ngIf="isFieldInvalid('content')" class="error-message">
+          {{ getFieldError('content') }}
+        </div>
+      </div>
+
+      <!-- PDF Upload Section -->
+      <div class="form-group">
+        <label class="form-label">{{ 'policies.policyForm.uploadPDF' | translate }} ({{ 'policies.policyForm.optional' | translate }})</label>
+        
+        <!-- Current PDF Display (for edit mode) -->
+        <div *ngIf="isEditMode && currentPolicy?.hasPDF" class="current-pdf-info">
+          <div class="current-pdf-card">
+            <div class="pdf-info">
+              <svg class="pdf-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+              <div class="pdf-details">
+                <span class="pdf-filename">{{ currentPolicy?.pdfFilename || 'Unknown file' }}</span>
+                <span class="pdf-size">{{ formatFileSize(currentPolicy?.pdfSize) }}</span>
+                <span class="pdf-status" [class]="currentPolicy?.pdfProcessed ? 'processed' : 'processing'">
+                  {{ currentPolicy?.pdfProcessed ? 'Processed' : 'Processing...' }}
+                </span>
+              </div>
+            </div>
+            <div class="pdf-actions">
+              <button type="button" (click)="removeCurrentPDF()" class="btn-remove-pdf">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Remove
+              </button>
+            </div>
+          </div>
+          <p class="pdf-replace-text">Upload a new PDF to replace the current one:</p>
+        </div>
+        
+        <!-- PDF Upload Area -->
+        <div class="file-upload-container">
+          <input
+            type="file"
+            id="pdfFile"
+            accept=".pdf"
+            (change)="onFileSelected($event)"
+            class="file-input"
+          />
+          <label for="pdfFile" class="file-upload-label">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            {{ isEditMode && currentPolicy?.hasPDF ? 'Replace PDF File' : 'Choose PDF File' }}
+          </label>
+        </div>
+        
+        <!-- Selected File Display -->
+        <div *ngIf="selectedFile" class="selected-file">
+          <div class="file-info">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            <span class="file-name">{{ fileName }}</span>
+          </div>
+          <button type="button" (click)="removeFile()" class="remove-file-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <p class="file-help-text">
+          {{ 'policies.policyForm.pdfHelpText' | translate }}
+        </p>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" (click)="onCancel()" class="btn-secondary">
+          {{ 'policies.policyForm.cancel' | translate }}
+        </button>
+        <button 
+          type="submit" 
+          class="btn-primary"
+          [disabled]="policyForm.invalid || isSubmitting"
+        >
+          <span *ngIf="!isSubmitting">
+            {{ getSubmitButtonText() }}
+          </span>
+          <span *ngIf="isSubmitting">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ getSubmittingText() }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

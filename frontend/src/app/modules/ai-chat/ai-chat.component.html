@@ -1,0 +1,291 @@
+<div class="ai-chat-container">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="header-content">
+      <h2>{{ 'aiChat.title' | translate }}</h2>
+      <p class="policy-info">{{ 'aiChat.chattingAbout' | translate }}: <strong>{{ policy?.title || ('aiChat.loadingPolicy' | translate) }}</strong></p>
+      <div class="context-row" *ngIf="sessionId">
+        <div class="context-indicator">
+          {{ 'aiChat.contextOn' | translate }}
+          <small>({{ sessionId }})</small>
+        </div>
+        <button class="reset-context-btn" type="button" (click)="resetContext()">{{ 'aiChat.resetContext' | translate }}</button>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="end-chat-btn" (click)="endChatSession()">{{ 'aiChat.endChat' | translate }}</button>
+    </div>
+  </div>
+
+  <!-- Welcome Message -->
+  <div class="welcome-section" *ngIf="username || policy?.title">
+    <div class="welcome-message">
+      <h3>{{ 'aiChat.welcome' | translate }}</h3>
+      <p class="greeting">
+        {{ 'aiChat.greeting' | translate }} <strong>{{ username || 'there' }}</strong>! {{ 'aiChat.helpMessage' | translate }}: 
+        <strong>{{ policy?.title || ('aiChat.unknownPolicy' | translate) }}</strong> {{ 'aiChat.presentInPDF' | translate }}.
+      </p>
+      
+      <!-- Policy Summary with Level Selector -->
+      <div class="policy-summary-section">
+        <div class="summary-header">
+          <h4>📋 {{ 'aiChat.policySummary' | translate }}</h4>
+          <div class="summary-level-controls" *ngIf="summaryInfo">
+            <div class="summary-level-selector">
+              <label for="chatSummaryLevel" class="summary-level-label">{{ 'aiChat.level' | translate }}:</label>
+              <select 
+                id="chatSummaryLevel" 
+                [(ngModel)]="summaryLevel" 
+                (change)="onSummaryLevelChange()"
+                class="summary-level-select policy-select">
+                <option [value]="SummaryLevel.BRIEF">{{ 'aiChat.brief' | translate }}</option>
+                <option [value]="SummaryLevel.STANDARD">{{ 'aiChat.standard' | translate }}</option>
+                <option [value]="SummaryLevel.DETAILED">{{ 'aiChat.detailed' | translate }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="summary-level-info" *ngIf="summaryInfo">
+          <span class="summary-level-badge">{{ getSummaryLevelLabel(summaryLevel) }}</span>
+          <span class="summary-level-description">{{ getSummaryLevelDescription(summaryLevel) }}</span>
+        </div>
+        
+        <div *ngIf="policySummary" class="policy-summary-content">
+          <p>{{ policySummary }}</p>
+        </div>
+        
+        <div *ngIf="!policySummary && summaryLoaded" class="policy-summary-content">
+          <p>{{ 'aiChat.summaryNotGenerated' | translate }}</p>
+        </div>
+        
+        <div *ngIf="!summaryLoaded" class="policy-summary-content">
+          <p>{{ 'aiChat.loadingSummary' | translate }}</p>
+        </div>
+      </div>
+      
+      <p class="closing-message">
+        {{ 'aiChat.readyToAnswer' | translate }}
+      </p>
+      
+      <!-- Reprocess Button (shown when AI can't find relevant chunks) -->
+      <div *ngIf="showReprocessButton" class="reprocess-section">
+        <div class="reprocess-warning">
+          <svg class="warning-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <div class="warning-content">
+            <h4>{{ 'aiChat.processingIssueTitle' | translate }}</h4>
+            <p>{{ 'aiChat.processingIssueDescription' | translate }}</p>
+            <div class="warning-details">
+              <p><strong>{{ 'aiChat.whatThisMeans' | translate }}:</strong> {{ 'aiChat.whatThisMeansDescription' | translate }}</p>
+              <p><strong>{{ 'aiChat.howToFix' | translate }}:</strong> {{ 'aiChat.howToFixDescription' | translate }}</p>
+            </div>
+            <button (click)="reprocessPolicy()" 
+                    class="reprocess-btn"
+                    [disabled]="sending">
+              <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              {{ sending ? ('aiChat.reprocessing' | translate) : ('aiChat.reprocessPolicy' | translate) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggested Questions Chips -->
+  <div class="suggested-questions-chips" *ngIf="showSuggestions && suggestedQuestions.length > 0">
+    <div class="chips-header">
+      <span class="chips-label">💡 {{ 'aiChat.quickQuestions' | translate }}</span>
+    </div>
+    
+    <div class="chips-container">
+      <button *ngFor="let question of suggestedQuestions.slice(0, 6)" 
+              class="question-chip"
+              (click)="onSuggestedQuestionClick(question)"
+              [title]="question">
+        <span class="chip-text">{{ question }}</span>
+        <span class="chip-icon">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-messages" #chatMessagesElement>
+    <div *ngFor="let message of chatMessages" 
+         class="message" 
+         [ngClass]="message.type === 'user' ? 'user-message' : 'ai-message'">
+      <div class="message-content">
+        <!-- Image Display -->
+        <div *ngIf="message.images && message.images.length > 0" class="message-images">
+          <div *ngFor="let image of message.images; let i = index" class="message-image">
+            <img [src]="image" [alt]="'Policy image ' + (i + 1)" class="chat-image" (error)="onImageError($event)" (load)="onImageLoad($event)">
+            <div class="image-overlay">
+              <button class="view-image-btn" (click)="viewImageFullscreen(image)">
+                <i class="fas fa-expand"></i>
+              </button>
+            </div>
+            <!-- Fallback for failed images -->
+            <div *ngIf="false" class="image-fallback" style="width: 100%; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; border-radius: 8px;">
+              <span style="color: #666;">Image failed to load</span>
+            </div>
+          </div>
+        </div>
+        
+        
+        <!-- Text Content -->
+        <div *ngIf="message.content" [innerHTML]="message.htmlContent || message.content"></div>
+        
+        <!-- Message Timestamp -->
+        <div class="message-timestamp">
+          {{ message.timestamp | date:'short' }}
+        </div>
+        
+        <!-- AI Message Meta -->
+        <div *ngIf="message.type === 'ai'" class="meta-row">
+          <span *ngIf="message.confidence !== undefined" 
+                class="confidence-badge" 
+                [ngClass]="getConfidenceLabel(message.confidence)">
+            {{ 'aiChat.confidence' | translate }}: {{ getConfidenceLabel(message.confidence) }}
+            <span class="confidence-tooltip" [title]="'aiChat.confidenceTooltip' | translate"> ⓘ</span>
+          </span>
+          <a *ngIf="(message.sources?.length || 0) > 0" 
+             class="sources-link" 
+             (click)="toggleSources(message)">
+            {{ message.showSources ? ('aiChat.hideSources' | translate) : ('aiChat.showSources' | translate) }}
+          </a>
+        </div>
+        
+        <!-- Sources -->
+        <div *ngIf="message.showSources" class="sources-list">
+          <div *ngFor="let s of message.sources; let i = index" class="source-item">
+            <strong>{{ 'aiChat.source' | translate }} {{ i + 1 }}:</strong>
+            <div class="source-text">{{ s.text || s.text_preview || s.chunk_text }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Upload Section -->
+  <div class="image-upload-section" *ngIf="showImageUpload">
+    <div class="image-upload-header">
+      <h4>📷 Upload Policy Images</h4>
+      <button class="close-upload-btn" (click)="toggleImageUpload()">×</button>
+    </div>
+    
+    <div class="image-upload-content">
+      <div class="upload-instructions">
+        <p *ngIf="isEmergencyMode" class="emergency-notice">
+          🚨 <strong>Emergency Mode:</strong> Upload main policy document image (no PDF available)
+        </p>
+        <p *ngIf="!isEmergencyMode && hasMainPolicy">
+          Upload up to {{ maxImages }} additional images with supplementary policy information
+        </p>
+        <p *ngIf="!isEmergencyMode && !hasMainPolicy">
+          Upload up to {{ maxImages }} images to enhance your chat session
+        </p>
+      </div>
+      
+      <div class="image-preview-container" *ngIf="selectedImages.length > 0">
+        <div *ngFor="let image of selectedImages; let i = index" class="image-preview">
+          <img [src]="image" [alt]="'Policy image ' + (i + 1)" class="preview-image">
+          <button class="remove-image-btn" (click)="removeImage(i)">×</button>
+        </div>
+      </div>
+      
+      <div class="upload-actions">
+        <input 
+          type="file" 
+          #fileInput 
+          (change)="onImageSelected($event)" 
+          accept="image/*" 
+          [multiple]="!isEmergencyMode"
+          style="display: none;">
+        
+        <button 
+          class="select-images-btn" 
+          (click)="fileInput.click()"
+          [disabled]="!canAddMoreImages()">
+          <i class="fas fa-camera"></i>
+          <span>{{ canAddMoreImages() ? 'Select Images' : 'Max Images Reached' }}</span>
+        </button>
+        
+        <button 
+          class="send-images-btn" 
+          (click)="sendImageMessage()"
+          [disabled]="selectedImages.length === 0 || sending">
+          <i class="fas fa-paper-plane"></i>
+          Send Images
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input-container">
+    <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-form">
+      <!-- Selected Images Preview -->
+      <div class="selected-images-preview" *ngIf="selectedImages.length > 0">
+        <div class="preview-header">
+          <span class="preview-title">📷 {{ selectedImages.length }} image(s) selected</span>
+          <button type="button" class="clear-images-btn" (click)="clearSelectedImages()">×</button>
+        </div>
+        <div class="preview-images">
+          <div *ngFor="let image of selectedImages; let i = index" class="preview-item">
+            <img [src]="image" [alt]="'Preview ' + (i + 1)" class="preview-thumb">
+            <button type="button" class="remove-preview-btn" (click)="removeImage(i)">×</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <input 
+          type="text" 
+          formControlName="message" 
+          [placeholder]="selectedImages.length > 0 ? 'Ask about the uploaded images...' : ('aiChat.placeholder' | translate)"
+          class="chat-input"
+          [disabled]="sending">
+        
+        <div class="input-actions">
+          <input 
+            type="file" 
+            #fileInput 
+            (change)="onImageSelected($event)" 
+            accept="image/*" 
+            [multiple]="true"
+            style="display: none;">
+          
+          <button 
+            type="button" 
+            class="image-upload-btn" 
+            (click)="fileInput.click()"
+            [disabled]="sending || selectedImages.length >= maxImages"
+            [title]="getImageLimitMessage()">
+            <i class="fas fa-camera"></i>
+            <span *ngIf="selectedImages.length > 0" class="image-count">{{ selectedImages.length }}/{{ maxImages }}</span>
+          </button>
+          
+          <button 
+            type="button" 
+            class="emergency-btn" 
+            (click)="enableEmergencyMode()"
+            [disabled]="sending || hasMainPolicy"
+            title="Emergency: Upload main policy image when you don't have PDF"
+            *ngIf="!hasMainPolicy">
+            <i class="fas fa-exclamation-triangle"></i>
+          </button>
+          
+          <button type="submit" 
+                  class="send-btn" 
+                  [disabled]="(!chatForm.get('message')?.value && selectedImages.length === 0) || sending">
+            <span *ngIf="!sending">{{ 'aiChat.send' | translate }}</span>
+            <span *ngIf="sending">{{ 'aiChat.sending' | translate }}</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,61 @@
+# ai-service specific .gitignore (Python/FastAPI)
+
+# ------------------------------------------------------------
+# Environment files (keep example tracked)
+# ------------------------------------------------------------
+.env
+.env.*
+!env.example
+
+# ------------------------------------------------------------
+# Python bytecode & caches
+# ------------------------------------------------------------
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Coverage & test artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.Python
+.python-version
+
+# Build/packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+pip-log.txt
+
+# Logs
+logs/
+*.log
+
+# Uploads and temp files
+uploads/
+!uploads/.gitkeep
+tmp/
+temp/
+.tmp/
+
+# Editors/OS (scoped here if working in this folder only)
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+

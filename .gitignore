@@ -1,0 +1,132 @@
+# Root gitignore for PolicyPal monorepo (frontend, backend, ai-service)
+
+# ------------------------------------------------------------
+# OS / Editor
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Cursor/agent local artifacts
+.cursor/
+.agent-tools/
+
+# ------------------------------------------------------------
+# General logs & caches
+# ------------------------------------------------------------
+*.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+**/.cache/
+.temp/
+.tmp/
+
+# Coverage
+coverage/
+**/coverage/
+.nyc_output/
+
+# ------------------------------------------------------------
+# Environment files (keep examples tracked)
+# ------------------------------------------------------------
+.env
+.env.*
+!env.example
+
+# Service-specific envs
+backend/.env
+backend/.env.*
+!backend/env.example
+
+frontend/.env
+frontend/.env.*
+!frontend/env.example
+
+ai-service/.env
+ai-service/.env.*
+!ai-service/env.example
+
+# Deployment local envs
+deployment/.env*
+
+# ------------------------------------------------------------
+# Node/JS (frontend, backend)
+# ------------------------------------------------------------
+node_modules/
+**/node_modules/
+dist/
+build/
+**/dist/
+**/build/
+.angular/
+frontend/.angular/
+backend/.angular/
+
+# Package managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# ------------------------------------------------------------
+# Angular specific
+# ------------------------------------------------------------
+frontend/.cache/
+frontend/.turbo/
+
+# ------------------------------------------------------------
+# NestJS specific
+# ------------------------------------------------------------
+backend/dist/
+backend/.cache/
+
+# ------------------------------------------------------------
+# Python (ai-service)
+# ------------------------------------------------------------
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ai-service/.venv/
+ai-service/venv/
+ai-service/env/
+ai-service/.pytest_cache/
+ai-service/.mypy_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.cover
+pip-wheel-metadata/
+pip-log.txt
+
+# ------------------------------------------------------------
+# Uploads and generated assets
+# ------------------------------------------------------------
+uploads/
+**/uploads/
+!ai-service/uploads/.gitkeep
+
+# ------------------------------------------------------------
+# Platform/project artifacts
+# ------------------------------------------------------------
+.vercel/
+.netlify/
+firebase.json
+.firebase/
+*.local
+
+
