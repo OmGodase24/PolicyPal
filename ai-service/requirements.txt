@@ -1,23 +1,22 @@
-# AI Policy Service Dependencies - Windows Compatible (Pre-compiled)
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-pydantic==2.4.2  # Older version with pre-compiled wheels
-openai==1.3.7
-langchain==0.0.350
-python-dotenv==1.0.0
-motor==3.3.2
-dnspython==2.4.2
+# AI Policy Service Dependencies - Render Compatible
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+openai>=1.3.0
+langchain>=0.1.0
+python-dotenv>=1.0.0
+motor>=3.3.0
+dnspython>=2.4.0
 
-# PDF Processing - Windows Compatible Alternatives
-PyPDF2==3.0.1
-pdfplumber==0.10.3
-# pymupdf==1.23.9  # Commented out - requires Visual Studio on Windows
+# PDF Processing
+PyPDF2>=3.0.0
+pdfplumber>=0.10.0
 
-# OCR for scanned documents - Windows Compatible
-pytesseract==0.3.10
+# OCR for scanned documents
+pytesseract>=0.3.10
 Pillow>=10.0.0
-pdf2image==1.16.3
+pdf2image>=1.16.0
 
-# Vector operations - use numpy instead of complex libraries
+# Vector operations
 numpy>=1.26.0
