@@ -6,7 +6,7 @@ export const environment = {
   appTagline: 'Smart Policy Management',
   version: '1.0.0',
   socketUrl: 'https://policypal-production.up.railway.app',
-  frontendUrl: 'https://policypal-frontend.vercel.app', // Will be updated after Vercel deployment
+  frontendUrl: 'https://policy-pal-sigma.vercel.app',
   environment: 'production',
   
   // DLP Configuration
