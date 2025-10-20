@@ -15,7 +15,7 @@ export class ConfigService {
   }
 
   getFrontendUrl(): string {
-    return environment.frontendUrl || 'https://policypal-frontend.vercel.app';
+    return environment.frontendUrl || 'https://policy-pal-sigma.vercel.app';
   }
 
   isProduction(): boolean {
