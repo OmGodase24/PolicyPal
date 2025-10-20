@@ -70,12 +70,12 @@ app = FastAPI(
 )
 
 # CORS middleware for NestJS backend and Angular frontend
+# Get allowed origins from environment variable
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:4200").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # NestJS backend
-        "http://localhost:4200",  # Angular frontend
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
