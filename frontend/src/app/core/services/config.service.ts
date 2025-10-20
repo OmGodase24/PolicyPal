@@ -7,15 +7,15 @@ import { environment } from '../../../environments/environment';
 export class ConfigService {
   
   getApiUrl(): string {
-    return environment.apiUrl || 'http://localhost:3000/api';
+    return environment.apiUrl || 'https://policypal-production.up.railway.app/api';
   }
 
   getSocketUrl(): string {
-    return environment.socketUrl || 'http://localhost:3000';
+    return environment.socketUrl || 'https://policypal-production.up.railway.app';
   }
 
   getFrontendUrl(): string {
-    return environment.frontendUrl || 'http://localhost:4200';
+    return environment.frontendUrl || 'https://policypal-frontend.vercel.app';
   }
 
   isProduction(): boolean {
@@ -46,6 +46,6 @@ export class ConfigService {
 
   // AI Service Configuration
   getAIServiceUrl(): string {
-    return environment.aiServiceUrl || 'http://localhost:8000';
+    return environment.aiServiceUrl || 'https://policypal-k9qt.onrender.com';
   }
 }
