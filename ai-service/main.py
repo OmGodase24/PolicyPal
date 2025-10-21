@@ -979,6 +979,99 @@ async def process_data_subject_request(
         raise HTTPException(status_code=500, detail=f"Data subject request processing failed: {str(e)}")
 
 
+@app.post("/compare-policies")
+async def compare_policies(request: dict):
+    """
+    Compare two policies using AI analysis
+    """
+    try:
+        print(f"🔍 Policy Comparison: Starting comparison")
+        print(f"🔍 Policy 1: {request.get('policy1_title', 'Unknown')}")
+        print(f"🔍 Policy 2: {request.get('policy2_title', 'Unknown')}")
+        
+        # Extract policy data
+        policy1_data = request.get('policy1', {})
+        policy2_data = request.get('policy2', {})
+        
+        # Get policy content
+        policy1_content = policy1_data.get('content', '') or policy1_data.get('pdfText', '') or policy1_data.get('aiSummary', '')
+        policy2_content = policy2_data.get('content', '') or policy2_data.get('pdfText', '') or policy2_data.get('aiSummary', '')
+        
+        print(f"🔍 Policy 1 content length: {len(policy1_content)}")
+        print(f"🔍 Policy 2 content length: {len(policy2_content)}")
+        
+        # Create comprehensive comparison prompt
+        comparison_prompt = f"""
+You are an expert insurance policy analyst. Analyze and compare these two insurance policies in extreme detail:
+
+POLICY 1: "{policy1_data.get('title', 'Unknown')}"
+Content: {policy1_content[:3000]}
+Status: {policy1_data.get('status', 'Unknown')}
+PDF Processed: {policy1_data.get('pdfProcessed', False)}
+
+POLICY 2: "{policy2_data.get('title', 'Unknown')}"
+Content: {policy2_content[:3000]}
+Status: {policy2_data.get('status', 'Unknown')}
+PDF Processed: {policy2_data.get('pdfProcessed', False)}
+
+Provide a COMPREHENSIVE analysis with:
+
+1. DETAILED COMPARISON SUMMARY (300+ words):
+   - Specific coverage amounts, limits, and benefits
+   - Premium costs, deductibles, copays, and out-of-pocket maximums
+   - Network coverage, provider restrictions, and geographic limitations
+   - Waiting periods, exclusions, and limitations
+   - Claims process differences
+   - Customer service and support options
+
+2. KEY DIFFERENCES (8-12 specific points):
+   - Exact dollar amounts for premiums, deductibles, and limits
+   - Specific coverage areas where one policy excels
+   - Network differences and provider access
+   - Financial responsibility differences
+   - Coverage gaps and limitations
+   - Claims process variations
+
+3. PRACTICAL RECOMMENDATIONS (6-8 actionable points):
+   - Which policy is better for specific scenarios (emergency care, routine visits, prescription drugs)
+   - Cost-benefit analysis for different user types
+   - Risk factors and coverage gaps to consider
+   - Steps to maximize benefits from each policy
+   - When to choose one over the other
+
+4. RELEVANCE SCORE (0-100):
+   - How comparable these policies are for decision-making
+
+Be extremely specific with numbers, amounts, percentages, and exact terms. Focus on actionable insights that help someone make an informed decision.
+"""
+        
+        # Call AI service for comparison
+        response = await ai_service.ask_question_direct(
+            question=comparison_prompt,
+            user_id=request.get('user_id', 'system'),
+            policy_id=None
+        )
+        
+        print(f"🔍 Policy Comparison: AI response length: {len(response)}")
+        
+        # Parse the response into structured format
+        parsed_response = ai_service.parse_comparison_response(response)
+        
+        return {
+            "summary": parsed_response.get('summary', response),
+            "keyDifferences": parsed_response.get('keyDifferences', []),
+            "recommendations": parsed_response.get('recommendations', []),
+            "relevanceScore": parsed_response.get('relevanceScore', 75),
+            "isRelevant": parsed_response.get('isRelevant', True),
+            "coverageComparison": parsed_response.get('coverageComparison', {}),
+            "rawResponse": response
+        }
+        
+    except Exception as e:
+        print(f"❌ Policy comparison error: {e}")
+        raise HTTPException(status_code=500, detail=f"Policy comparison failed: {str(e)}")
+
+
 if __name__ == "__main__":
     port = int(os.getenv("AI_SERVICE_PORT", 8000))
     host = os.getenv("AI_SERVICE_HOST", "0.0.0.0")
