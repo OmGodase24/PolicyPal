@@ -724,23 +724,6 @@ export class AIService {
     }
   }
 
-  async comparePolicies(policyIds: string[], userId: string): Promise<any> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/compare-policies`, {
-          policy_ids: policyIds,
-          user_id: userId,
-        }, {
-          timeout: 30000,
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to compare policies: ${error.message}`, error.stack);
-      throw new Error(`AI service compare failed: ${error.response?.data?.detail || error.message}`);
-    }
-  }
 
   async getPolicyDocument(documentId: string, userId: string): Promise<any> {
     try {
@@ -1154,6 +1137,30 @@ export class AIService {
     } catch (error) {
       this.logger.error(`Failed to get supported languages: ${error.message}`);
       throw new Error(`Failed to get supported languages: ${error.message}`);
+    }
+  }
+
+  async comparePolicies(request: {
+    policy1: any;
+    policy2: any;
+    policy1_title: string;
+    policy2_title: string;
+    user_id: string;
+  }): Promise<any> {
+    try {
+      this.logger.log(`🔍 Comparing policies: "${request.policy1_title}" vs "${request.policy2_title}"`);
+      
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/compare-policies`, request, {
+          timeout: 120000, // 2 minutes for AI processing
+        }),
+      );
+
+      this.logger.log(`✅ Policy comparison completed: ${response.data.keyDifferences?.length || 0} differences found`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to compare policies: ${error.message}`, error.stack);
+      throw new Error(`Policy comparison failed: ${error.response?.data?.detail || error.message}`);
     }
   }
 }
