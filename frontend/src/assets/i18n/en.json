@@ -161,7 +161,10 @@
     "expiredPolicies": "Expired",
     "expiringSoon": "Expiring Soon",
     "draftPolicies": "Drafts",
-    "aiChats": "AI Chats"
+    "aiChats": "AI Chats",
+    "noPoliciesYet": "No policies yet",
+    "getStarted": "Get started by creating your first policy document.",
+    "createFirstPolicy": "Create Your First Policy"
   },
   "policies": {
     "title": "Policies",
