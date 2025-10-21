@@ -182,12 +182,16 @@ export class AIController {
     @CurrentUser() user: any,
   ): Promise<any> {
     try {
-      const comparison = await this.aiService.comparePolicies(body.policyIds, user.userId);
-      return {
-        success: true,
-        data: comparison,
-        message: 'Policies compared successfully',
-      };
+      // This endpoint is for the old policy comparison flow
+      // The new comparison flow is handled by the PolicyComparisonService
+      throw new HttpException(
+        {
+          statusCode: 400,
+          message: 'This endpoint is deprecated. Use the policy comparison service instead.',
+          error: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     } catch (error) {
       throw new HttpException(
         `Failed to compare policies: ${error.message}`,
