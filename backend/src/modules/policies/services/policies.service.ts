@@ -62,7 +62,14 @@ export class PoliciesService {
     try {
       // Upload to AI service first (it will extract text and create embeddings)
       console.log('🚀 Calling AI service to process PDF...');
-      const aiResponse = await this.aiService.uploadPolicyDocument(pdf, userId, policy._id.toString());
+      
+      // Add timeout to prevent hanging
+      const aiResponse = await Promise.race([
+        this.aiService.uploadPolicyDocument(pdf, userId, policy._id.toString()),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI service timeout')), 30000) // 30 second timeout
+        )
+      ]) as any;
       
       if (aiResponse && aiResponse.documentId) {
         // AI service succeeded, use the extracted text from AI service
