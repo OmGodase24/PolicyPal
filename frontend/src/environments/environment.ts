@@ -1,12 +1,12 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://policypal-production.up.railway.app/api',
   apiTimeout: 30000,
   appName: 'PolicyPal',
   appTagline: 'Smart Policy Management',
   version: '1.0.0',
-  socketUrl: 'http://localhost:3000',
-  frontendUrl: 'http://localhost:4200',
+  socketUrl: 'https://policypal-production.up.railway.app',
+  frontendUrl: 'https://policy-pal-sigma.vercel.app',
   environment: 'development',
   
   // DLP Configuration
@@ -18,5 +18,7 @@ export const environment = {
   consentManagementEnabled: true,
   
   // AI Service Configuration
-  aiServiceUrl: 'http://localhost:8000'
+  aiServiceUrl: 'https://policypal-k9qt.onrender.com'
 };
+
+
