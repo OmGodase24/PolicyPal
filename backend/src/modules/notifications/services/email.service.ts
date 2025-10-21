@@ -19,27 +19,52 @@ export class EmailService {
 
   private initializeTransporter(): void {
     const useGmail = this.configService.get<string>('SMTP_SERVICE', '').toLowerCase() === 'gmail';
+    
+    // Get SMTP configuration with better error handling
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+    
+    if (!smtpUser || !smtpPass) {
+      this.logger.error('❌ SMTP credentials not configured. Email functionality will be disabled.');
+      this.logger.error('❌ Please set SMTP_USER and SMTP_PASS environment variables.');
+      return;
+    }
 
     const smtpConfig: any = useGmail
       ? {
           service: 'gmail',
           auth: {
-            user: this.configService.get<string>('SMTP_USER'),
-            pass: this.configService.get<string>('SMTP_PASS'), // App Password if 2FA
+            user: smtpUser,
+            pass: smtpPass, // App Password if 2FA
           },
+          tls: {
+            rejectUnauthorized: false
+          }
         }
       : {
           host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
           port: this.configService.get<number>('SMTP_PORT', 587),
           secure: this.configService.get<boolean>('SMTP_SECURE', false), // true for 465
           auth: {
-            user: this.configService.get<string>('SMTP_USER'),
-            pass: this.configService.get<string>('SMTP_PASS'),
+            user: smtpUser,
+            pass: smtpPass,
           },
+          tls: {
+            rejectUnauthorized: false
+          }
         };
 
     this.transporter = nodemailer.createTransport(smtpConfig);
     this.logger.log('📧 Email service initialized');
+    
+    // Test connection
+    this.testConnection().then(success => {
+      if (success) {
+        this.logger.log('✅ Email service connection verified');
+      } else {
+        this.logger.error('❌ Email service connection failed - emails will not be sent');
+      }
+    });
   }
 
   private loadEmailTemplates(): void {
@@ -83,6 +108,11 @@ export class EmailService {
     userData?: any
   ): Promise<boolean> {
     try {
+      if (!this.transporter) {
+        this.logger.error('❌ Email transporter not initialized. Cannot send email.');
+        return false;
+      }
+
       const templateName = this.getTemplateName(notification.type);
       const template = this.templates.get(templateName) || this.getDefaultTemplate();
       
@@ -106,12 +136,14 @@ export class EmailService {
         text: this.generateTextVersion(notification),
       };
 
+      this.logger.log(`📧 Attempting to send email to ${to}...`);
       const result = await this.transporter.sendMail(mailOptions);
       this.logger.log(`✅ Email sent successfully to ${to}: ${result.messageId}`);
       return true;
 
     } catch (error) {
       this.logger.error(`❌ Failed to send email to ${to}: ${error.message}`);
+      this.logger.error(`❌ Error details:`, error);
       return false;
     }
   }
@@ -215,6 +247,11 @@ PolicyPal Notification System
 
   async sendPasswordResetEmail(email: string, firstName: string, resetUrl: string): Promise<void> {
     try {
+      if (!this.transporter) {
+        this.logger.error('❌ Email transporter not initialized. Cannot send password reset email.');
+        throw new Error('Email service not configured');
+      }
+
       this.logger.log(`🔍 Looking for password-reset template...`);
       this.logger.log(`📋 Available templates: ${Array.from(this.templates.keys()).join(', ')}`);
       
@@ -287,10 +324,12 @@ PolicyPal Notification System
         html,
       };
 
+      this.logger.log(`📧 Attempting to send password reset email to ${email}...`);
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`✅ Password reset email sent to ${email}`);
     } catch (error) {
       this.logger.error(`❌ Failed to send password reset email: ${error.message}`);
+      this.logger.error(`❌ Error details:`, error);
       throw error;
     }
   }
