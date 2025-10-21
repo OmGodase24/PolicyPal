@@ -316,51 +316,68 @@ export class InviteService {
   }
 
   private async sendInviteEmail(email: string, inviteLink: string, invitedBy: string, message?: string): Promise<void> {
-    const inviter = await this.userModel.findById(invitedBy).select('firstName lastName email');
-    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : 'PolicyPal Team';
+    try {
+      const inviter = await this.userModel.findById(invitedBy).select('firstName lastName email');
+      const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : 'PolicyPal Team';
 
-    // Simple email sending without template for now
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+      // Check if SMTP credentials are available
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        this.logger.error('❌ SMTP credentials not configured. Cannot send invite email.');
+        throw new Error('Email service not configured');
+      }
 
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: email,
-      subject: 'You\'re invited to join PolicyPal!',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #2563eb; color: white; padding: 20px; text-align: center;">
-            <h1>PolicyPal</h1>
-            <p>Smart Policy Management Platform</p>
-          </div>
-          <div style="padding: 20px; background: #f9fafb;">
-            <h2>You're invited to join PolicyPal!</h2>
-            <p>Hello,</p>
-            <p><strong>${inviterName}</strong> has invited you to join PolicyPal, the smart policy management platform.</p>
-            ${message ? `<div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0;"><strong>Personal Message:</strong><br>${message}</div>` : ''}
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accept Invitation & Sign Up</a>
+      // Simple email sending without template for now
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      const mailOptions = {
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: email,
+        subject: 'You\'re invited to join PolicyPal!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #2563eb; color: white; padding: 20px; text-align: center;">
+              <h1>PolicyPal</h1>
+              <p>Smart Policy Management Platform</p>
             </div>
-            <p style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; border-radius: 4px;">
-              ⏰ This invitation link will expire in 7 days. Please accept the invitation soon to secure your account.
-            </p>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #2563eb;">${inviteLink}</p>
+            <div style="padding: 20px; background: #f9fafb;">
+              <h2>You're invited to join PolicyPal!</h2>
+              <p>Hello,</p>
+              <p><strong>${inviterName}</strong> has invited you to join PolicyPal, the smart policy management platform.</p>
+              ${message ? `<div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0;"><strong>Personal Message:</strong><br>${message}</div>` : ''}
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accept Invitation & Sign Up</a>
+              </div>
+              <p style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; border-radius: 4px;">
+                ⏰ This invitation link will expire in 7 days. Please accept the invitation soon to secure your account.
+              </p>
+              <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #2563eb;">${inviteLink}</p>
+            </div>
+            <div style="padding: 20px; text-align: center; font-size: 12px; color: #666;">
+              <p>This invitation was sent by ${inviterName} through PolicyPal.</p>
+              <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+              <p>&copy; 2024 PolicyPal. All rights reserved.</p>
+            </div>
           </div>
-          <div style="padding: 20px; text-align: center; font-size: 12px; color: #666;">
-            <p>This invitation was sent by ${inviterName} through PolicyPal.</p>
-            <p>If you didn't expect this invitation, you can safely ignore this email.</p>
-            <p>&copy; 2024 PolicyPal. All rights reserved.</p>
-          </div>
-        </div>
-      `,
-    };
+        `,
+      };
 
-    await transporter.sendMail(mailOptions);
+      this.logger.log(`📧 Attempting to send invite email to ${email}...`);
+      await transporter.sendMail(mailOptions);
+      this.logger.log(`✅ Invite email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send invite email to ${email}: ${error.message}`);
+      this.logger.error(`❌ Error details:`, error);
+      throw error;
+    }
   }
 }
