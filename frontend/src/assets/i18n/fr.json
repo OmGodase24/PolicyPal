@@ -121,7 +121,10 @@
     "expiredPolicies": "Expirées",
     "expiringSoon": "Expirent bientôt",
     "draftPolicies": "Brouillons",
-    "aiChats": "Chats IA"
+    "aiChats": "Chats IA",
+    "noPoliciesYet": "Aucune politique pour l'instant",
+    "getStarted": "Commencez par créer votre premier document de politique.",
+    "createFirstPolicy": "Créer votre Première Politique"
   },
   "policies": {
     "title": "Politiques",
