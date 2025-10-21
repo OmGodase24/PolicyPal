@@ -293,7 +293,17 @@ export class PoliciesController {
     @Body() publishDto: PublishPolicyDto,
     @CurrentUser() user: any,
   ): Promise<PolicyResponseDto> {
-    return this.policiesService.publishPolicy(id, publishDto, user.userId);
+    try {
+      console.log(`🔍 Publishing policy ${id} for user ${user.userId}`);
+      console.log(`🔍 Publish DTO:`, publishDto);
+      
+      const result = await this.policiesService.publishPolicy(id, publishDto, user.userId);
+      console.log(`✅ Policy ${id} published successfully`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error publishing policy ${id}:`, error);
+      throw error;
+    }
   }
 
   @Get(':id/can-edit')
