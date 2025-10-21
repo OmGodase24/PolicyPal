@@ -414,13 +414,16 @@ export class PolicyComparisonService {
       const policy1Data = comparisonData.policy1;
       const policy2Data = comparisonData.policy2;
 
-      // Perform intelligent content analysis directly
+      this.logger.log(`🔍 Generating detailed AI insights for: "${policy1Data.title}" vs "${policy2Data.title}"`);
+
+      // Perform comprehensive content analysis
       const analysis = await this.analyzeContentIntelligently(policy1Data, policy2Data);
       
+      this.logger.log(`✅ AI insights generated successfully with ${analysis.keyDifferences?.length || 0} key differences`);
       return analysis;
 
     } catch (error) {
-      this.logger.error(`Error generating AI insights: ${error.message}`);
+      this.logger.error(`❌ Error generating AI insights: ${error.message}`);
       // Fallback to basic analysis if AI service fails
       return this.fallbackToBasicAnalysis(comparisonData.policy1, comparisonData.policy2);
     }
@@ -469,26 +472,51 @@ export class PolicyComparisonService {
   }
 
   private async getAIEnhancedComparison(policy1: any, policy2: any): Promise<any> {
+    const policy1Content = this.extractAllContent(policy1);
+    const policy2Content = this.extractAllContent(policy2);
+    
     const comparisonPrompt = `
-Please analyze and compare these two policy documents:
+You are an expert insurance policy analyst. Analyze and compare these two insurance policies in extreme detail:
 
 POLICY 1: "${policy1.title}"
-Content: ${this.extractAllContent(policy1).substring(0, 2000)}
+Content: ${policy1Content.substring(0, 3000)}
 Document Type: ${policy1.documentType}
 Policy Type: ${policy1.policyType}
 
 POLICY 2: "${policy2.title}"
-Content: ${this.extractAllContent(policy2).substring(0, 2000)}
+Content: ${policy2Content.substring(0, 3000)}
 Document Type: ${policy2.documentType}
 Policy Type: ${policy2.policyType}
 
-Please provide:
-1. A detailed comparison summary focusing on actual content differences
-2. Key differences between the documents (specific, actionable points)
-3. Practical recommendations for someone choosing between these options
-4. Relevance assessment (0-100) based on how comparable these documents are
+Provide a COMPREHENSIVE analysis with:
 
-Focus on actual content, not generic policy language. Be specific about what each document offers.
+1. DETAILED COMPARISON SUMMARY (300+ words):
+   - Specific coverage amounts, limits, and benefits
+   - Premium costs, deductibles, copays, and out-of-pocket maximums
+   - Network coverage, provider restrictions, and geographic limitations
+   - Waiting periods, exclusions, and limitations
+   - Claims process differences
+   - Customer service and support options
+
+2. KEY DIFFERENCES (8-12 specific points):
+   - Exact dollar amounts for premiums, deductibles, and limits
+   - Specific coverage areas where one policy excels
+   - Network differences and provider access
+   - Financial responsibility differences
+   - Coverage gaps and limitations
+   - Claims process variations
+
+3. PRACTICAL RECOMMENDATIONS (6-8 actionable points):
+   - Which policy is better for specific scenarios (emergency care, routine visits, prescription drugs)
+   - Cost-benefit analysis for different user types
+   - Risk factors and coverage gaps to consider
+   - Steps to maximize benefits from each policy
+   - When to choose one over the other
+
+4. RELEVANCE SCORE (0-100):
+   - How comparable these policies are for decision-making
+
+Be extremely specific with numbers, amounts, percentages, and exact terms. Focus on actionable insights that help someone make an informed decision.
 `;
 
     try {
@@ -508,20 +536,56 @@ Focus on actual content, not generic policy language. Be specific about what eac
   }
 
   private parseAIResponse(aiResponse: string): any {
+    this.logger.log(`🤖 Parsing AI response: ${aiResponse.length} characters`);
+    
     // Extract structured information from AI response
     const sections = aiResponse.split(/\d+\./);
     
+    const aiSummary = sections[1]?.trim() || '';
+    const aiDifferences = this.extractListItems(sections[2] || '');
+    const aiRecommendations = this.extractListItems(sections[3] || '');
+    const aiRelevanceScore = this.extractRelevanceScore(aiResponse);
+    
+    this.logger.log(`📊 Parsed: ${aiDifferences.length} differences, ${aiRecommendations.length} recommendations, ${aiRelevanceScore}% relevance`);
+    
     return {
-      aiSummary: sections[1]?.trim() || '',
-      aiDifferences: this.extractListItems(sections[2] || ''),
-      aiRecommendations: this.extractListItems(sections[3] || ''),
-      aiRelevanceScore: this.extractRelevanceScore(aiResponse)
+      aiSummary: aiSummary,
+      aiDifferences: aiDifferences,
+      aiRecommendations: aiRecommendations,
+      aiRelevanceScore: aiRelevanceScore
     };
   }
 
   private extractListItems(section: string): string[] {
-    const items = section.split(/[-•*]/).filter(item => item.trim().length > 10);
-    return items.map(item => item.trim()).slice(0, 5);
+    // Extract items from various list formats
+    const patterns = [
+      /[-•*]\s*([^-\n]{15,200})/g,  // Bullet points
+      /\d+\.\s*([^0-9\n]{15,200})/g,  // Numbered lists
+      /^[\s]*[A-Z][^.\n]{20,200}/gm,  // Capitalized sentences
+      /[💰🏥🎯⚠️📊📞✅🟡🔴]\s*([^💰🏥🎯⚠️📊📞✅🟡🔴\n]{15,200})/g  // Emoji-prefixed items
+    ];
+    
+    const items = [];
+    
+    for (const pattern of patterns) {
+      const matches = section.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const cleaned = match.replace(/^[-•*\d\.\s💰🏥🎯⚠️📊📞✅🟡🔴]+/, '').trim();
+          if (cleaned.length > 15 && cleaned.length < 300) {
+            items.push(cleaned);
+          }
+        });
+      }
+    }
+    
+    // Fallback: split by common separators
+    if (items.length === 0) {
+      const fallbackItems = section.split(/[.\n]/).filter(item => item.trim().length > 20);
+      items.push(...fallbackItems.slice(0, 8));
+    }
+    
+    return [...new Set(items)].slice(0, 10); // Remove duplicates, max 10 items
   }
 
   private extractRelevanceScore(text: string): number {
@@ -1634,8 +1698,145 @@ Focus on actual content, not generic policy language. Be specific about what eac
   }
 
   private performComprehensivePolicyComparison(policy1: any, policy2: any, comparison: any): any {
+    this.logger.log(`🔍 Performing comprehensive policy comparison for: "${policy1.title}" vs "${policy2.title}"`);
+    
     // Use the existing deep policy comparison logic
-    return this.performDeepPolicyComparison(policy1, policy2);
+    const comparisonResult = this.performDeepPolicyComparison(policy1, policy2);
+    
+    // Enhance with additional detailed analysis
+    const enhancedComparison = this.enhanceComparisonWithDetailedAnalysis(comparisonResult, policy1, policy2);
+    
+    this.logger.log(`✅ Comprehensive comparison complete: ${enhancedComparison.keyDifferences?.length || 0} differences identified`);
+    
+    return enhancedComparison;
+  }
+
+  private enhanceComparisonWithDetailedAnalysis(comparison: any, policy1: any, policy2: any): any {
+    // Add more specific financial analysis
+    const financialAnalysis = this.generateDetailedFinancialAnalysis(policy1, policy2);
+    
+    // Add coverage-specific insights
+    const coverageInsights = this.generateCoverageInsights(policy1, policy2);
+    
+    // Add risk assessment
+    const riskAssessment = this.generateRiskAssessment(policy1, policy2);
+    
+    // Enhance the summary with specific details
+    const enhancedSummary = this.enhanceSummaryWithSpecifics(comparison.summary, policy1, policy2);
+    
+    // Add more actionable recommendations
+    const enhancedRecommendations = [
+      ...(comparison.recommendations || []),
+      ...financialAnalysis,
+      ...coverageInsights,
+      ...riskAssessment
+    ].slice(0, 8);
+    
+    return {
+      ...comparison,
+      summary: enhancedSummary,
+      recommendations: enhancedRecommendations,
+      detailedFinancialAnalysis: financialAnalysis,
+      coverageInsights: coverageInsights,
+      riskAssessment: riskAssessment
+    };
+  }
+
+  private generateDetailedFinancialAnalysis(policy1: any, policy2: any): string[] {
+    const analysis = [];
+    
+    // Premium comparison
+    if (policy1.financial.premiums.length > 0 && policy2.financial.premiums.length > 0) {
+      const p1Premium = policy1.financial.premiums[0];
+      const p2Premium = policy2.financial.premiums[0];
+      analysis.push(`💰 **Premium Analysis**: ${policy1.title} shows ${p1Premium} vs ${policy2.title} at ${p2Premium}`);
+    }
+    
+    // Deductible comparison
+    if (policy1.financial.deductibles.length > 0 && policy2.financial.deductibles.length > 0) {
+      const p1Deductible = policy1.financial.deductibles[0];
+      const p2Deductible = policy2.financial.deductibles[0];
+      analysis.push(`🎯 **Deductible Impact**: ${policy1.title} has ${p1Deductible} vs ${policy2.title} with ${p2Deductible} - affects out-of-pocket costs`);
+    }
+    
+    // Coverage limits comparison
+    if (policy1.financial.limits.length > 0 && policy2.financial.limits.length > 0) {
+      const p1Limit = policy1.financial.limits[0];
+      const p2Limit = policy2.financial.limits[0];
+      analysis.push(`📊 **Coverage Limits**: ${policy1.title} offers ${p1Limit} vs ${policy2.title} with ${p2Limit} - critical for major medical expenses`);
+    }
+    
+    return analysis;
+  }
+
+  private generateCoverageInsights(policy1: any, policy2: any): string[] {
+    const insights = [];
+    
+    // Coverage breadth comparison
+    const p1CoverageCount = policy1.coverage.length;
+    const p2CoverageCount = policy2.coverage.length;
+    
+    if (Math.abs(p1CoverageCount - p2CoverageCount) > 2) {
+      const betterCoverage = p1CoverageCount > p2CoverageCount ? policy1.title : policy2.title;
+      insights.push(`🏥 **Coverage Breadth**: ${betterCoverage} provides ${Math.max(p1CoverageCount, p2CoverageCount)} coverage areas vs ${Math.min(p1CoverageCount, p2CoverageCount)} - better protection scope`);
+    }
+    
+    // Specific coverage areas
+    const p1CoverageText = policy1.coverage.join(' ').toLowerCase();
+    const p2CoverageText = policy2.coverage.join(' ').toLowerCase();
+    
+    const coverageKeywords = ['emergency', 'prescription', 'dental', 'vision', 'specialist', 'surgery', 'mental health'];
+    for (const keyword of coverageKeywords) {
+      const p1Has = p1CoverageText.includes(keyword);
+      const p2Has = p2CoverageText.includes(keyword);
+      
+      if (p1Has && !p2Has) {
+        insights.push(`✅ **${keyword.charAt(0).toUpperCase() + keyword.slice(1)} Coverage**: Only available in ${policy1.title}`);
+      } else if (!p1Has && p2Has) {
+        insights.push(`✅ **${keyword.charAt(0).toUpperCase() + keyword.slice(1)} Coverage**: Only available in ${policy2.title}`);
+      }
+    }
+    
+    return insights;
+  }
+
+  private generateRiskAssessment(policy1: any, policy2: any): string[] {
+    const risks = [];
+    
+    // Exclusions analysis
+    const p1Exclusions = policy1.exclusions.length;
+    const p2Exclusions = policy2.exclusions.length;
+    
+    if (Math.abs(p1Exclusions - p2Exclusions) > 1) {
+      const moreExclusions = p1Exclusions > p2Exclusions ? policy1.title : policy2.title;
+      risks.push(`⚠️ **Risk Assessment**: ${moreExclusions} has ${Math.max(p1Exclusions, p2Exclusions)} exclusions vs ${Math.min(p1Exclusions, p2Exclusions)} - review carefully for coverage gaps`);
+    }
+    
+    // Claims process comparison
+    const p1Claims = policy1.claimsProcess.length;
+    const p2Claims = policy2.claimsProcess.length;
+    
+    if (p1Claims > 0 || p2Claims > 0) {
+      const betterClaims = p1Claims > p2Claims ? policy1.title : policy2.title;
+      risks.push(`📞 **Claims Support**: ${betterClaims} provides more detailed claims process (${Math.max(p1Claims, p2Claims)} vs ${Math.min(p1Claims, p2Claims)} procedures)`);
+    }
+    
+    return risks;
+  }
+
+  private enhanceSummaryWithSpecifics(summary: string, policy1: any, policy2: any): string {
+    // Add specific financial details to the summary
+    const p1FinancialItems = Object.values(policy1.financial).reduce((sum: number, arr: any) => sum + (arr?.length || 0), 0) as number;
+    const p2FinancialItems = Object.values(policy2.financial).reduce((sum: number, arr: any) => sum + (arr?.length || 0), 0) as number;
+    
+    const enhancedSummary = summary + `
+    
+    **Detailed Financial Analysis**: ${policy1.title} contains ${p1FinancialItems} financial data points including specific premiums, deductibles, and coverage limits, while ${policy2.title} provides ${p2FinancialItems} financial details. This comprehensive data enables precise cost-benefit analysis for emergency planning and coverage selection.
+    
+    **Coverage Comparison**: ${policy1.title} offers ${policy1.coverage.length} specific coverage areas vs ${policy2.title} with ${policy2.coverage.length} areas, providing ${Math.max(policy1.coverage.length, policy2.coverage.length)} total coverage options for comprehensive protection.
+    `;
+    
+    return enhancedSummary;
   }
 
   private formatCoverageAnalysis(policyAnalysis: any): string[] {
