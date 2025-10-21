@@ -786,3 +786,102 @@ Please provide a structured summary in 2-3 paragraphs that would help someone qu
             policy_id=policy_id,
             user_id=user_id
         )
+    
+    async def ask_question_direct(
+        self,
+        question: str,
+        user_id: str,
+        policy_id: str = None
+    ) -> str:
+        """
+        Ask a question directly to the AI model without vector search
+        """
+        try:
+            print(f"🤖 AI Service: Direct question from user {user_id}")
+            print(f"🤖 Question: {question[:100]}...")
+            
+            # Create messages for the AI model
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are an expert insurance policy analyst. Provide detailed, accurate, and actionable analysis based on the information provided."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ]
+            
+            # Call OpenAI API
+            response = await asyncio.to_thread(
+                self.client.chat.completions.create,
+                model=self.chat_model,
+                messages=messages,
+                max_tokens=self.max_tokens,
+                temperature=0.2,  # Low temperature for factual responses
+                top_p=0.9,
+                frequency_penalty=0.0,
+                presence_penalty=0.0
+            )
+            
+            answer = response.choices[0].message.content.strip()
+            print(f"🤖 AI Service: Generated response ({len(answer)} characters)")
+            
+            return answer
+            
+        except Exception as e:
+            print(f"❌ AI Service: Direct question failed: {e}")
+            raise
+    
+    def parse_comparison_response(self, response: str) -> dict:
+        """
+        Parse AI comparison response into structured format
+        """
+        try:
+            print(f"🔍 Parsing comparison response: {len(response)} characters")
+            
+            # Extract sections using patterns
+            import re
+            sections = re.split(r'\d+\.', response)
+            
+            # Extract summary (first section)
+            summary = sections[1].strip() if len(sections) > 1 else response[:500]
+            
+            # Extract key differences
+            key_differences = []
+            if len(sections) > 2:
+                differences_text = sections[2]
+                # Extract bullet points or numbered items
+                diff_items = re.split(r'[-•*]', differences_text)
+                key_differences = [item.strip() for item in diff_items if item.strip() and len(item.strip()) > 15][:10]
+            
+            # Extract recommendations
+            recommendations = []
+            if len(sections) > 3:
+                rec_text = sections[3]
+                rec_items = re.split(r'[-•*]', rec_text)
+                recommendations = [item.strip() for item in rec_items if item.strip() and len(item.strip()) > 15][:8]
+            
+            # Extract relevance score
+            relevance_score = 75  # Default
+            score_match = re.search(r'(\d+)%?(?:\s*(?:relevance|relevant|score|compatibility))', response, re.IGNORECASE)
+            if score_match:
+                relevance_score = min(100, max(0, int(score_match.group(1))))
+            
+            return {
+                'summary': summary,
+                'keyDifferences': key_differences,
+                'recommendations': recommendations,
+                'relevanceScore': relevance_score,
+                'isRelevant': relevance_score > 40
+            }
+            
+        except Exception as e:
+            print(f"❌ Error parsing comparison response: {e}")
+            return {
+                'summary': response,
+                'keyDifferences': [],
+                'recommendations': [],
+                'relevanceScore': 75,
+                'isRelevant': True
+            }
