@@ -472,63 +472,26 @@ export class PolicyComparisonService {
   }
 
   private async getAIEnhancedComparison(policy1: any, policy2: any): Promise<any> {
-    const policy1Content = this.extractAllContent(policy1);
-    const policy2Content = this.extractAllContent(policy2);
-    
-    const comparisonPrompt = `
-You are an expert insurance policy analyst. Analyze and compare these two insurance policies in extreme detail:
-
-POLICY 1: "${policy1.title}"
-Content: ${policy1Content.substring(0, 3000)}
-Document Type: ${policy1.documentType}
-Policy Type: ${policy1.policyType}
-
-POLICY 2: "${policy2.title}"
-Content: ${policy2Content.substring(0, 3000)}
-Document Type: ${policy2.documentType}
-Policy Type: ${policy2.policyType}
-
-Provide a COMPREHENSIVE analysis with:
-
-1. DETAILED COMPARISON SUMMARY (300+ words):
-   - Specific coverage amounts, limits, and benefits
-   - Premium costs, deductibles, copays, and out-of-pocket maximums
-   - Network coverage, provider restrictions, and geographic limitations
-   - Waiting periods, exclusions, and limitations
-   - Claims process differences
-   - Customer service and support options
-
-2. KEY DIFFERENCES (8-12 specific points):
-   - Exact dollar amounts for premiums, deductibles, and limits
-   - Specific coverage areas where one policy excels
-   - Network differences and provider access
-   - Financial responsibility differences
-   - Coverage gaps and limitations
-   - Claims process variations
-
-3. PRACTICAL RECOMMENDATIONS (6-8 actionable points):
-   - Which policy is better for specific scenarios (emergency care, routine visits, prescription drugs)
-   - Cost-benefit analysis for different user types
-   - Risk factors and coverage gaps to consider
-   - Steps to maximize benefits from each policy
-   - When to choose one over the other
-
-4. RELEVANCE SCORE (0-100):
-   - How comparable these policies are for decision-making
-
-Be extremely specific with numbers, amounts, percentages, and exact terms. Focus on actionable insights that help someone make an informed decision.
-`;
-
     try {
-      const response = await this.aiService.askQuestion(
-        comparisonPrompt,
-        'system', // Use system user for internal analysis
-        null, // No specific policy ID
-        null, // No session ID
-        [] // No history
-      );
+      this.logger.log(`🔍 Calling AI service for policy comparison: "${policy1.title}" vs "${policy2.title}"`);
+      
+      // Call the new policy comparison endpoint
+      const response = await this.aiService.comparePolicies({
+        policy1: policy1,
+        policy2: policy2,
+        policy1_title: policy1.title,
+        policy2_title: policy2.title,
+        user_id: 'system'
+      });
 
-      return this.parseAIResponse(response.answer);
+      this.logger.log(`✅ AI service comparison completed: ${response.keyDifferences?.length || 0} differences found`);
+      
+      return {
+        aiSummary: response.summary,
+        aiDifferences: response.keyDifferences || [],
+        aiRecommendations: response.recommendations || [],
+        aiRelevanceScore: response.relevanceScore || 75
+      };
     } catch (error) {
       this.logger.error(`AI comparison failed: ${error.message}`);
       throw error;
