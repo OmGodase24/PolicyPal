@@ -121,7 +121,10 @@
     "expiredPolicies": "Expiradas",
     "expiringSoon": "Por Vencer",
     "draftPolicies": "Borradores",
-    "aiChats": "Chats de IA"
+    "aiChats": "Chats de IA",
+    "noPoliciesYet": "Aún no hay políticas",
+    "getStarted": "Comienza creando tu primer documento de política.",
+    "createFirstPolicy": "Crea tu Primera Política"
   },
   "policies": {
     "title": "Políticas",
