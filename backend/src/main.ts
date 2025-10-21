@@ -32,8 +32,15 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // CORS configuration
+  const allowedOrigins = [
+    'http://localhost:4200',
+    'https://policy-pal-sigma.vercel.app',
+    'https://policy-pal-sigma.vercel.app/',
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -60,7 +67,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT || 8080;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
