@@ -58,7 +58,7 @@ export class PolicyFormComponent implements OnInit {
     this.route.params.subscribe(params => {
       this.policyId = params['id'];
       this.isEditMode = !!this.policyId;
-      
+
       if (this.isEditMode) {
         this.loadPolicy();
       }
@@ -71,14 +71,14 @@ export class PolicyFormComponent implements OnInit {
     this.policyService.getPolicy(this.policyId).subscribe({
       next: (policy: Policy) => {
         this.currentPolicy = policy;
-        
+
         // Check if policy is expired
         const lifecycleInfo = this.policyService.calculatePolicyLifecycle(policy);
         this.isExpired = lifecycleInfo.isExpired;
-        
+
         // Check if expiry date can be edited
         this.canEditExpiryDate = !policy.expiryDateEdited && policy.status === 'draft' && !this.isExpired;
-        
+
         this.policyForm.patchValue({
           title: policy.title,
           description: policy.description,
@@ -109,12 +109,12 @@ export class PolicyFormComponent implements OnInit {
         this.notificationService.showError('Please select a PDF file');
         return;
       }
-      
+
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
         this.notificationService.showError('File size must be less than 10MB');
         return;
       }
-      
+
       this.selectedFile = file;
       this.fileName = file.name;
     }
@@ -153,94 +153,68 @@ export class PolicyFormComponent implements OnInit {
 
   createPolicy(formData: any): void {
     if (this.selectedFile) {
+      // Create a copy of the file to prevent file access issues
+      const fileCopy = new File([this.selectedFile], this.selectedFile.name, {
+        type: this.selectedFile.type,
+        lastModified: this.selectedFile.lastModified
+      });
+
       // Create with PDF
       const formDataWithFile = new FormData();
       formDataWithFile.append('title', formData.title);
       formDataWithFile.append('description', formData.description || '');
       formDataWithFile.append('content', formData.content || '');
       formDataWithFile.append('status', formData.status);
-      // Always send expiry date, even if empty, so backend knows if user provided it
       formDataWithFile.append('expiryDate', formData.expiryDate || '');
+
       if (formData.tags) {
         const tagsArray = formData.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag);
         if (tagsArray.length > 0) {
           formDataWithFile.append('tags', JSON.stringify(tagsArray));
         }
       }
-      formDataWithFile.append('pdf', this.selectedFile);
+
+      // Use the file copy instead of the original file
+      formDataWithFile.append('pdf', fileCopy);
 
       this.policyService.createPolicyWithPDF(formDataWithFile).subscribe({
-      next: (response: any) => {
+        next: (response: any) => {
           this.notificationService.showPolicyCreated(formData.title);
-    if (this.selectedFile) {
+          if (this.selectedFile) {
             this.notificationService.showPolicyPDFUploaded(formData.title);
             this.notificationService.showPolicyAIProcessing(formData.title);
           }
-
-          // Record reward: policy created
-          this.rewardService.recordActivity({
-            type: 'policy_created',
-            name: 'create_policy',
-            points: 20,
-            metadata: { policyId: response?._id || response?.id, title: formData.title }
-          }).subscribe({ next: () => {}, error: () => {} });
-
-          // Record reward: policy published (if published on create)
-          if (formData.status === 'publish') {
-            this.rewardService.recordActivity({
-              type: 'policy_published',
-              name: 'publish_policy',
-              points: 50,
-              metadata: { policyId: response?._id || response?.id, title: formData.title }
-            }).subscribe({ next: () => {}, error: () => {} });
-          }
           this.router.navigate(['/policies']);
+          this.isSubmitting = false;
         },
         error: (error: any) => {
           console.error('Error creating policy:', error);
-          this.notificationService.showError('Failed to create policy');
-        this.isSubmitting = false;
+          this.notificationService.showError('Error creating policy: ' + (error.error?.message || error.message || 'Unknown error'));
+          this.isSubmitting = false;
         }
       });
     } else {
       // Create without PDF
       const createRequest: CreatePolicyRequest = {
         title: formData.title,
-        expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : undefined,
         description: formData.description || '',
         content: formData.content || '',
-        status: formData.status
+        status: formData.status,
+        expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : undefined
       };
 
       this.policyService.createPolicy(createRequest).subscribe({
-      next: (response: any) => {
-        this.notificationService.showPolicyCreated(formData.title);
-
-        // Record reward: policy created
-        this.rewardService.recordActivity({
-          type: 'policy_created',
-          name: 'create_policy',
-          points: 20,
-          metadata: { policyId: response?._id || response?.id, title: formData.title }
-        }).subscribe({ next: () => {}, error: () => {} });
-
-        // Record reward: policy published (if published on create)
-        if (formData.status === 'publish') {
-          this.rewardService.recordActivity({
-            type: 'policy_published',
-            name: 'publish_policy',
-            points: 50,
-            metadata: { policyId: response?._id || response?.id, title: formData.title }
-          }).subscribe({ next: () => {}, error: () => {} });
-        }
-        this.router.navigate(['/policies']);
-      },
-      error: (error: any) => {
-        console.error('Error creating policy:', error);
-        this.notificationService.showError('Failed to create policy');
+        next: (response: any) => {
+          this.notificationService.showPolicyCreated(formData.title);
+          this.router.navigate(['/policies']);
           this.isSubmitting = false;
-      }
-    });
+        },
+        error: (error: any) => {
+          console.error('Error creating policy:', error);
+          this.notificationService.showError('Error creating policy: ' + (error.error?.message || error.message || 'Unknown error'));
+          this.isSubmitting = false;
+        }
+      });
     }
   }
 
@@ -291,7 +265,7 @@ export class PolicyFormComponent implements OnInit {
             name: 'publish_policy',
             points: 50,
             metadata: { policyId: this.policyId, title: formData.title }
-          }).subscribe({ next: () => {}, error: () => {} });
+          }).subscribe({ next: () => { }, error: () => { } });
         }
         this.router.navigate(['/policies']);
       },
@@ -376,7 +350,7 @@ export class PolicyFormComponent implements OnInit {
 
   removeCurrentPDF(): void {
     if (!this.policyId) return;
-    
+
     if (confirm('Are you sure you want to remove the current PDF?')) {
       this.policyService.removePolicyPDF(this.policyId).subscribe({
         next: (policy: Policy) => {
