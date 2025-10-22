@@ -5,6 +5,7 @@ import { Invite, InviteDocument } from '../schemas/invite.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateInviteDto, ValidateInviteDto, UseInviteDto, InviteResponseDto, ValidateInviteResponseDto, InviteListDto } from '../dto/invite.dto';
 import { EmailService } from '../../notifications/services/email.service';
+import { AlternativeEmailService } from '../../notifications/services/alternative-email.service';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import * as nodemailer from 'nodemailer';
@@ -20,6 +21,7 @@ export class InviteService {
     @InjectModel(Invite.name) private inviteModel: Model<InviteDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private emailService: EmailService,
+    private alternativeEmailService: AlternativeEmailService,
   ) {}
 
   async createInvite(createInviteDto: CreateInviteDto, invitedBy: string): Promise<InviteResponseDto> {
@@ -63,12 +65,28 @@ export class InviteService {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
     const inviteLink = `${frontendUrl}/signup?invite=${token}`;
 
-    // Send email
+    // Send email with fallback
     try {
-      await this.sendInviteEmail(email, inviteLink, invitedBy, message);
-      this.logger.log(`Invite email sent to ${email}`);
+      // Try alternative email service first (more reliable for Railway)
+      const inviter = await this.userModel.findById(invitedBy).select('firstName lastName email');
+      const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : 'PolicyPal Team';
+      
+      const emailSent = await this.alternativeEmailService.sendInviteEmail(
+        email, 
+        inviteLink, 
+        inviterName, 
+        message
+      );
+      
+      if (emailSent) {
+        this.logger.log(`✅ Invite email sent to ${email} using alternative service`);
+      } else {
+        this.logger.warn(`⚠️ Alternative email service failed, trying original service...`);
+        await this.sendInviteEmail(email, inviteLink, invitedBy, message);
+        this.logger.log(`✅ Invite email sent to ${email} using original service`);
+      }
     } catch (error) {
-      this.logger.error(`Failed to send invite email to ${email}:`, error);
+      this.logger.error(`❌ Failed to send invite email to ${email}:`, error);
       // Don't throw error here, invite is still created
     }
 
@@ -326,7 +344,7 @@ export class InviteService {
         throw new Error('Email service not configured');
       }
 
-      // Simple email sending without template for now
+      // Enhanced SMTP configuration with timeout and retry settings
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -335,7 +353,15 @@ export class InviteService {
         },
         tls: {
           rejectUnauthorized: false
-        }
+        },
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 5000,   // 5 seconds
+        socketTimeout: 10000,   // 10 seconds
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 3,
+        rateDelta: 20000,
+        rateLimit: 5
       });
 
       const mailOptions = {
