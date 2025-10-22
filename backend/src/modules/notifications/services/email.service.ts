@@ -39,7 +39,15 @@ export class EmailService {
           },
           tls: {
             rejectUnauthorized: false
-          }
+          },
+          connectionTimeout: 10000, // 10 seconds
+          greetingTimeout: 5000,   // 5 seconds
+          socketTimeout: 10000,   // 10 seconds
+          pool: true,
+          maxConnections: 1,
+          maxMessages: 3,
+          rateDelta: 20000,
+          rateLimit: 5
         }
       : {
           host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
@@ -51,7 +59,15 @@ export class EmailService {
           },
           tls: {
             rejectUnauthorized: false
-          }
+          },
+          connectionTimeout: 10000, // 10 seconds
+          greetingTimeout: 5000,   // 5 seconds
+          socketTimeout: 10000,   // 10 seconds
+          pool: true,
+          maxConnections: 1,
+          maxMessages: 3,
+          rateDelta: 20000,
+          rateLimit: 5
         };
 
     this.transporter = nodemailer.createTransport(smtpConfig);
