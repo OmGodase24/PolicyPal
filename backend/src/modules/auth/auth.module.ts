@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { UsersModule } from '../users/users.module';
 import { MfaModule } from '../mfa/mfa.module';
 import { EmailService } from '../notifications/services/email.service';
+import { AlternativeEmailService } from '../notifications/services/alternative-email.service';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { EmailService } from '../notifications/services/email.service';
     AuthService,
     JwtStrategy,
     EmailService,
+    AlternativeEmailService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
