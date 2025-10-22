@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UsersService } from '../../users/services/users.service';
 import { EmailService } from '../../notifications/services/email.service';
+import { AlternativeEmailService } from '../../notifications/services/alternative-email.service';
 import { MfaService } from '../../mfa/services/mfa.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -21,6 +22,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private alternativeEmailService: AlternativeEmailService,
     private mfaService: MfaService,
   ) {}
 
@@ -172,11 +174,26 @@ export class AuthService {
       lastPasswordResetAt: new Date(),
     });
 
-    // Send reset email
+    // Send reset email with fallback
     const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:4200');
     const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
 
-    await this.emailService.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+    try {
+      // Try alternative email service first (more reliable for Railway)
+      const emailSent = await this.alternativeEmailService.sendPasswordResetEmail(
+        user.email, 
+        user.firstName, 
+        resetUrl
+      );
+      
+      if (!emailSent) {
+        // Fallback to original email service
+        await this.emailService.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send password reset email:', error);
+      // Don't throw error here, user experience should not be affected
+    }
 
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
   }
