@@ -13,6 +13,7 @@ import { InviteService } from './services/invite.service';
 import { RewardService } from './services/reward.service';
 import { UsersRepository } from './repositories/users.repository';
 import { EmailService } from '../notifications/services/email.service';
+import { AlternativeEmailService } from '../notifications/services/alternative-email.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { EmailService } from '../notifications/services/email.service';
     ]),
   ],
   controllers: [UsersController, InviteController, PublicInviteController, RewardController],
-  providers: [UsersService, InviteService, RewardService, UsersRepository, EmailService],
+  providers: [UsersService, InviteService, RewardService, UsersRepository, EmailService, AlternativeEmailService],
   exports: [UsersService, InviteService, RewardService, UsersRepository],
 })
 export class UsersModule {}
